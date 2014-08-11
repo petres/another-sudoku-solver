@@ -1,14 +1,18 @@
 #!/usr/bin/env python
+from __future__ import division
 import itertools, sys
 
-constraintTypes = ["row", "col", "block"]
+constraintTypes = ["row", "column", "block"]
 
 sudoku = [[{"a": range(1,10), "v": '-'} for x in xrange(9)] for x in xrange(9)] 
 
-def printInfo(c):
+def s(c):
 	i, j = c
+	return sudoku[i][j]
+
+def printInfo(c):
 	print "INFO CELL ", c
-	print sudoku[i][j]
+	print s(c)
 
 
 def printSudoku():
@@ -25,7 +29,7 @@ def printSudoku():
 		for i in range(9):
 			if i%3 == 0:
 				line += "|"
-			line += " " + str(sudoku[j][i]["v"]) + " "
+			line += " " + str(s((j,i))["v"]) + " "
 		line += "|"
 		print line
 
@@ -47,7 +51,7 @@ def getBlockIndexes(c):
 	if isinstance(c, tuple):
 		i, j = c
 	else:
-		i = (c - c%3)
+		i = c - c%3
 		j = c%3 * 3
 	ii = i%3
 	jj = j%3
@@ -56,7 +60,7 @@ def getBlockIndexes(c):
 def getIndexes(f, c):
 	if f == "row":
 		it = getRowIndexes(c)
-	elif f == "col":
+	elif f == "column":
 		it = getColIndexes(c)
 	elif f == "block":
 		it = getBlockIndexes(c)
@@ -65,15 +69,13 @@ def getIndexes(f, c):
 
 def addValues(c, v):
 	i, j = c
-
-	sudoku[i][j]["v"] = v
-	sudoku[i][j]["a"] = []
-
+	s(c)["v"] = v
+	s(c)["a"] = []
 	for t in constraintTypes:
 		for cc in getIndexes(t, c):
 			ii, jj = cc
-			if v in sudoku[ii][jj]["a"]:
-				sudoku[ii][jj]["a"].remove(v)
+			if v in s(cc)["a"]:
+				s(cc)["a"].remove(v)
 
 
 
@@ -92,10 +94,10 @@ def reading(fileName):
 
 def checkOne(deep = False):
 	for c in itertools.product(range(9), range(9)):
-		i, j = c
-		if len(sudoku[i][j]['a']) == 1:
-			return (c, sudoku[i][j]['a'][0], "LAST")
-	
+		if len(s(c)['a']) == 1:
+			return (c, s(c)['a'][0], "LAST")
+
+	deepFound = False
 	for t in constraintTypes:
 		for n in range(9):
 			p = {}
@@ -103,21 +105,17 @@ def checkOne(deep = False):
 				p[v] = []
 				times = 0
 				for c in getIndexes(t, n):
-					i, j = c
-					if v in sudoku[i][j]['a']:
+					if v in s(c)['a']:
 						p[v].append(c)
 			pl = {}
 			for v in range(1, 10):
 				if len(p[v]) == 1:
 					if not deep:
 						return (p[v][0], v, t)
-
 				elif len(p[v]) > 1:
 					if len(p[v]) not in pl:
 						pl[len(p[v])] = []
-
 					pl[len(p[v])].append({"v": v, "s": set(p[v])})
-
 			if deep:
 				for l in pl:
 					if l > len(pl[l]):
@@ -131,8 +129,7 @@ def checkOne(deep = False):
 						same = False
 						for iSet in cSet:
 							if compareSet is None:
-								compareSet = iSet["s"]
-							
+								compareSet = iSet["s"]							
 							if compareSet != iSet["s"]:
 								same = False
 								break
@@ -142,12 +139,13 @@ def checkOne(deep = False):
 						if same == True:
 							toPrint = "Note that the cells "
 							for c in compareSet:
-								i, j = c
-								toPrint += "(" + str(i) + ", " + str(j) + ") "
-								sudoku[i][j]['a'] = list(vs)
-							toPrint += "have to contain one of the values " + str(vs)
+								toPrint += str(c) + " "
+								s(c)['a'] = list(vs)
+							toPrint += "have to contain one of the values " + str(vs) + "."
 							print toPrint
-
+							deepFound = True
+	if deep:
+		return deepFound
 
 fileName = "sudoku.txt"
 if len(sys.argv) > 1:
@@ -162,8 +160,6 @@ missing = 100
 
 it = 0
 while(True):
-	
-
 	while True:
 		kIn = raw_input("\nPress Enter to enter next round ... \n")
   		if len(kIn) == 0:
@@ -182,7 +178,7 @@ while(True):
 		i, j = c
 		print "Thats easy, look at the cell " + str(i) + ", " + str(j) + "!"
 		if t != "LAST":
-			print "Another hint, it's the", t, "constraint"
+			print "Another hint, it's the", t, "constraint."
 		else:
 			print "Maybe there is only one number left, which fits in this cell."
 
@@ -194,8 +190,12 @@ while(True):
 		if it == 0:
 			print "No idea, seems to be a complex one!"
 		else:
-			print "Wait, look at: "
-			checkOne(True)
+			print "Wait, lets look more detailed ... "
+			if checkOne(True):
+				it = 0
+			else:
+				print "Sorry, I give up!"
+				exit()
 
 	missing = 0
 	for c in itertools.product(range(9), range(9)):
@@ -214,10 +214,6 @@ while(True):
 		it += 1
 	oldMissing = missing
 
-	print "Still", missing, "are missing ", it
-	print ""
-
-	#for c in getBlockIndexes(4):
-	#	printInfo(c)
+	
 
 
