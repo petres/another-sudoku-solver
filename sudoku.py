@@ -2,7 +2,10 @@
 from __future__ import division
 import itertools, sys
 
-constraintTypes = ["row", "column", "block"]
+constraintTypes 	= { 
+			0: [0, "row", "r"],
+			1: [1, "column", "c"],
+			2: [2, "block", "b"]}
 
 sudoku = [[{"a": range(1,10), "v": '-'} for x in xrange(9)] for x in xrange(9)] 
 
@@ -10,21 +13,24 @@ def s(c):
 	i, j = c
 	return sudoku[i][j]
 
-def printInfo(c):
-	print "INFO CELL ", c
-	print s(c)
+def printInfoBlock(t, n):
+	print "INFO CELLS", t, n, ":"
+	for c in getIndexes(t, n):
+		print c, ":", s(c)
 
+def printInfo(c):
+	print "INFO CELL ", c, ":", s(c)
 
 def printSudoku():
 	for j in range(10):
 		if j == 0:
-			print "    0  1  2   3  4  5   6  7  8  "
+			print "     0  1  2   3  4  5   6  7  8  "
 		if j%3 == 0:
-			print "  " + "---"*9 + "----"
+			print "   " + "---"*9 + "----"
 		if j == 9:
 			break;
 
-		line = str(j) + " "
+		line = " "  + str(j) + " "
 
 		for i in range(9):
 			if i%3 == 0:
@@ -58,11 +64,12 @@ def getBlockIndexes(c):
 	return itertools.product(range(i - ii, i - ii + 3), range(j - jj, j - jj + 3))
 
 def getIndexes(f, c):
-	if f == "row":
+	it = []
+	if f in constraintTypes[0]:
 		it = getRowIndexes(c)
-	elif f == "column":
+	elif f in constraintTypes[1]:
 		it = getColIndexes(c)
-	elif f == "block":
+	elif f in constraintTypes[2]:
 		it = getBlockIndexes(c)
 	return it
 
@@ -167,9 +174,14 @@ while(True):
 		if len(kIn) == 3:
 			exit()
 		if len(kIn) == 2:
-			i = int(kIn[0])
+			f = kIn[0]
 			j = int(kIn[1])
-			printInfo((i, j))
+			try:
+				i = int(f)
+				printInfo((i, j))
+			except ValueError:
+				printInfoBlock(f,j)
+			
 	
 	info = checkOne()
 
@@ -178,7 +190,7 @@ while(True):
 		i, j = c
 		print "Thats easy, look at the cell " + str(i) + ", " + str(j) + "!"
 		if t != "LAST":
-			print "Another hint, it's the", t, "constraint."
+			print "Another hint, it's the", constraintTypes[t][1], "constraint."
 		else:
 			print "Maybe there is only one number left, which fits in this cell."
 
