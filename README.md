@@ -25,3 +25,9 @@ Afterwards the program has to be started by:
 ```
 ./sudoku.py sudokuFileName
 ```
+
+Between each solving step you can interact with the program:
+- `31` will print the info of cell 3, 1.
+- `e` will export the Sudoku to sudoku.txt.
+- `b1` will print the info of all cells in the second block. Works also with columns (c) and rows (r).
+- `q` will quit the program. 
