@@ -2,6 +2,8 @@
 from __future__ import division
 import itertools, sys
 
+defaultFileName = "sudoku.txt"
+
 constraintTypes 	= { 
 			0: [0, "row", "r"],
 			1: [1, "column", "c"],
@@ -16,7 +18,8 @@ def s(c):
 def printInfoBlock(t, n):
 	print "INFO CELLS", t, n, ":"
 	for c in getIndexes(t, n):
-		print c, ":", s(c)
+		if s(c)["v"] == "-":
+			print c, ":", s(c)
 
 def printInfo(c):
 	print "INFO CELL ", c, ":", s(c)
@@ -38,6 +41,17 @@ def printSudoku():
 			line += " " + str(s((j,i))["v"]) + " "
 		line += "|"
 		print line
+
+def export(fileName = defaultFileName):
+	lines = []
+	for j in range(9):
+		line = ""
+		for i in range(9):
+			line += str(s((j,i))["v"])
+		lines.append(line + "\n")
+	with open(fileName, 'w') as f:
+		f.writelines(lines)
+
 
 def getRowIndexes(c):
 	if isinstance(c, tuple):
@@ -72,7 +86,6 @@ def getIndexes(f, c):
 	elif f in constraintTypes[2]:
 		it = getBlockIndexes(c)
 	return it
-
 
 def addValues(c, v):
 	i, j = c
@@ -154,7 +167,7 @@ def checkOne(deep = False):
 	if deep:
 		return deepFound
 
-fileName = "sudoku.txt"
+fileName = defaultFileName
 if len(sys.argv) > 1:
 	fileName = sys.argv[1]
 
@@ -171,8 +184,10 @@ while(True):
 		kIn = raw_input("\nPress Enter to enter next round ... \n")
   		if len(kIn) == 0:
 			break
-		if len(kIn) == 3:
+		if kIn == "q":
 			exit()
+		if kIn == "e":
+			export()
 		if len(kIn) == 2:
 			f = kIn[0]
 			j = int(kIn[1])
