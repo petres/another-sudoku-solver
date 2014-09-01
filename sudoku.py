@@ -9,6 +9,9 @@ constraintTypes 	= {
 			1: [1, "column", "c"],
 			2: [2, "block", "b"]}
 
+
+constraints = list(itertools.product(range(3), range(9)))
+
 sudoku = [[{"a": range(1,10), "v": '-'} for x in xrange(9)] for x in xrange(9)] 
 
 def s(c):
@@ -17,7 +20,7 @@ def s(c):
 
 def printInfoBlock(t, n):
 	print "INFO CELLS", t, n, ":"
-	for c in getIndexes(t, n):
+	for c in getFields(t, n):
 		if s(c)["v"] == "-":
 			print c, ":", s(c)
 
@@ -77,7 +80,10 @@ def getBlockIndexes(c):
 	jj = j%3
 	return itertools.product(range(i - ii, i - ii + 3), range(j - jj, j - jj + 3))
 
-def getIndexes(f, c):
+def getFields(f, c = None):
+	if c is None:
+		f, c = f
+
 	it = []
 	if f in constraintTypes[0]:
 		it = getRowIndexes(c)
@@ -85,6 +91,7 @@ def getIndexes(f, c):
 		it = getColIndexes(c)
 	elif f in constraintTypes[2]:
 		it = getBlockIndexes(c)
+
 	return it
 
 def addValues(c, v):
@@ -92,11 +99,10 @@ def addValues(c, v):
 	s(c)["v"] = v
 	s(c)["a"] = []
 	for t in constraintTypes:
-		for cc in getIndexes(t, c):
+		for cc in getFields(t, c):
 			ii, jj = cc
 			if v in s(cc)["a"]:
 				s(cc)["a"].remove(v)
-
 
 
 def reading(fileName):
@@ -110,62 +116,101 @@ def reading(fileName):
 				value = int(value)
 				addValues((i,j), value)
 			
-
-
-def checkOne(deep = False):
+# Check if exists only one last possible value for a cell
+def checkLast():
 	for c in itertools.product(range(9), range(9)):
 		if len(s(c)['a']) == 1:
 			return (c, s(c)['a'][0], "LAST")
 
-	deepFound = False
-	for t in constraintTypes:
-		for n in range(9):
-			p = {}
-			for v in range(1, 10):
-				p[v] = []
-				times = 0
-				for c in getIndexes(t, n):
-					if v in s(c)['a']:
-						p[v].append(c)
-			pl = {}
-			for v in range(1, 10):
-				if len(p[v]) == 1:
-					if not deep:
-						return (p[v][0], v, t)
-				elif len(p[v]) > 1:
-					if len(p[v]) not in pl:
-						pl[len(p[v])] = []
-					pl[len(p[v])].append({"v": v, "s": set(p[v])})
-			if deep:
-				for l in pl:
-					if l > len(pl[l]):
-						continue
+# Check std constraints
+def checkOne():
+	for c in constraints:
+		for v in range(1, 10):
+			t = []
+			for field in getFields(c):
+				if v in s(field)['a']:
+					t.append(field)
+			if len(t) == 1:
+				return (t[0], v, c[0])
+			
 
-					cSets = itertools.combinations(pl[l], l)
+def clearTwo():
+	for c in constraints:
+		missing = 0
+		for field in getFields(c):
+			if s(field)['v'] == "-":
+				missing += 1
+			
+		p = {}
+		for v in range(1, 10):
+			p[v] = []
+			for field in getFields(c):
+				if v in s(field)['a']:
+					p[v].append(field)
 
-					for cSet in cSets:
-						vs = []
-						compareSet = None
+		pl = {}
+		for v in range(1, 10):
+			if len(p[v]) == 0:
+				continue
+
+			if len(p[v]) not in pl:
+				pl[len(p[v])] = []
+			pl[len(p[v])].append({"v": v, "s": set(p[v])})
+
+		for l in pl:
+			if l > len(pl[l]):
+				continue
+			if l == missing:
+				continue
+
+			cSets = itertools.combinations(pl[l], l)
+
+			for cSet in cSets:
+				vs = []
+				compareSet = None
+				same = False
+				for iSet in cSet:
+					if compareSet is None:
+						compareSet = iSet["s"]							
+					if compareSet != iSet["s"]:
 						same = False
-						for iSet in cSet:
-							if compareSet is None:
-								compareSet = iSet["s"]							
-							if compareSet != iSet["s"]:
-								same = False
-								break
-							same = True
-							vs.append(iSet['v'])
-					
-						if same == True:
-							toPrint = "Note that the cells "
-							for c in compareSet:
-								toPrint += str(c) + " "
-								s(c)['a'] = list(vs)
-							toPrint += "have to contain one of the values " + str(vs) + "."
-							print toPrint
-							deepFound = True
-	if deep:
-		return deepFound
+						break
+					same = True
+					vs.append(iSet['v'])
+			
+				if same == True:
+					toPrint = "Note that the cells "
+					for c in compareSet:
+						toPrint += str(c) + " "
+						s(c)['a'] = list(vs)
+					toPrint += "have to contain one of the values " + str(vs) + "."
+					print toPrint
+
+
+def clearOne():
+	haveTo = {}
+	for c in constraints:
+		for v in range(1, 10):
+			t = []
+			for field in getFields(c):
+				if v in s(field)['a']:
+					t.append(field)
+			if len(t) > 0:
+				haveTo[(c, v)] = set(t)
+
+	for c in constraints:
+		fields = set(getFields(c))
+		for entry in haveTo:
+			cc, v = entry
+			if cc != c:
+				if fields.issuperset(haveTo[entry]):
+					for field in fields:
+						if field not in haveTo[entry]:
+							if v in s(field)['a']:
+								print "removing", v, "from", field, constraintTypes[c[0]][1], c[1], fields, haveTo[entry]
+								s(field)['a'].remove(v)
+
+
 
 fileName = defaultFileName
 if len(sys.argv) > 1:
@@ -184,6 +229,8 @@ while(True):
 		kIn = raw_input("\nPress Enter to enter next round ... \n")
   		if len(kIn) == 0:
 			break
+		if kIn == "s":
+			printSudoku()
 		if kIn == "q":
 			exit()
 		if kIn == "e":
@@ -197,8 +244,11 @@ while(True):
 			except ValueError:
 				printInfoBlock(f,j)
 			
-	
+	clearOne()
+	clearTwo()
 	info = checkOne()
+	if info is None:
+		info = checkLast()
 
 	if info != None:
 		c, v, t = info
@@ -218,7 +268,7 @@ while(True):
 			print "No idea, seems to be a complex one!"
 		else:
 			print "Wait, lets look more detailed ... "
-			if checkOne(True):
+			if checkOne():
 				it = 0
 			else:
 				print "Sorry, I give up!"
