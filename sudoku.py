@@ -5,9 +5,9 @@ import itertools, sys
 defaultFileName = "sudoku.txt"
 
 constraintTypes 	= { 
-			0: [0, "row", "r"],
-			1: [1, "column", "c"],
-			2: [2, "block", "b"]}
+			0: [0, "row", "R", "r"],
+			1: [1, "column", "C", "c"],
+			2: [2, "block", "B", "b"]}
 
 
 constraints = list(itertools.product(range(3), range(9)))
@@ -44,6 +44,10 @@ def printSudoku():
 			line += " " + str(s((j,i))["v"]) + " "
 		line += "|"
 		print line
+
+def	cToStr(c, i = 2):
+	t, n = c
+	return constraintTypes[t][i] + str(n)
 
 def export(fileName = defaultFileName):
 	lines = []
@@ -140,22 +144,67 @@ def clearTwo():
 		for field in getFields(c):
 			if s(field)['v'] == "-":
 				missing += 1
-			
+		
+		if missing == 0:
+			continue
+
 		p = {}
+		p2 = {}
+		p3 = []
 		for v in range(1, 10):
-			p[v] = []
-			for field in getFields(c):
+			p2[v] = []
+			for i, field in enumerate(getFields(c)):
 				if v in s(field)['a']:
+					if v not in p:
+						p[v] = []
 					p[v].append(field)
+					p2[v].append(i)
+					if i not in p3:
+						p3.append(i)
+
 
 		pl = {}
-		for v in range(1, 10):
-			if len(p[v]) == 0:
-				continue
 
+		print cToStr(c), "Missing:", missing
+		print ' ',
+		for f in p3:
+			print f,
+		print
+
+		for v in p:
+			print v, 
+			for f in p3:
+				if f in p2[v]:
+					print 'x',
+				else:
+					print '-',
+			print
+		print
+
+		for co in range(1, missing):
+			temp = itertools.combinations(p3, co)
+			for item in temp:
+				j = 0
+				for v in p:
+					k = 0
+					for ii in item:
+						if ii not in p2[v]:
+							k += 1
+					if k == len(item):
+						j +=1
+				if j >= (missing - len(item)):
+					print "yeah clustering", item
+					print "sorry not implemented"
+					print "do it yourself", constraintTypes[c[0]][1], c[1]
+
+
+		for v in p:
 			if len(p[v]) not in pl:
 				pl[len(p[v])] = []
+
+			#print "   - Value", v, ":", p[v]
 			pl[len(p[v])].append({"v": v, "s": set(p[v])})
+
 
 		for l in pl:
 			if l > len(pl[l]):
@@ -164,6 +213,7 @@ def clearTwo():
 				continue
 
 			cSets = itertools.combinations(pl[l], l)
+			#if  l > missing:
 
 			for cSet in cSets:
 				vs = []
